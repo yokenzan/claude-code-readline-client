@@ -4,6 +4,7 @@ Tests for Readline input handler.
 
 import os
 import pytest
+import unittest.mock
 from unittest.mock import patch
 
 from ccrc.input.readline_handler import (
@@ -68,9 +69,15 @@ class TestReadlineInputHandler:
             mock_read_history.assert_called_once()
             mock_set_delims.assert_called_once()
             mock_read_init_file.assert_called_once()
-            # Should only have one parse_and_bind call for tab completion
-            assert mock_parse_bind.call_count == 1
-            mock_parse_bind.assert_called_with("tab: complete")
+            # Should have 4 parse_and_bind calls (tab completion + 3 GNU Readline bindings)
+            assert mock_parse_bind.call_count == 4
+            expected_calls = [
+                unittest.mock.call("tab: complete"),
+                unittest.mock.call('"\\C-x\\C-e": edit-and-execute-command'),
+                unittest.mock.call('"\\C-x*": glob-expand-word'),
+                unittest.mock.call('"\\eg": glob-complete-word'),
+            ]
+            mock_parse_bind.assert_has_calls(expected_calls)
 
     def test_history_file_not_exists(self):
         """Test behavior when history file doesn't exist."""
