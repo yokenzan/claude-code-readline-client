@@ -18,10 +18,12 @@ class TestReadlineInputHandler:
 
     def test_init_default(self):
         """Test default initialization."""
-        with patch("ccrc.input.readline_handler._import_readline_library") as mock_import:
+        with patch(
+            "ccrc.input.readline_handler._import_readline_library"
+        ) as mock_import:
             mock_readline = unittest.mock.MagicMock()
             mock_import.return_value = mock_readline
-            
+
             handler = ReadlineInputHandler()
 
             assert handler.history_size == 10000
@@ -32,14 +34,16 @@ class TestReadlineInputHandler:
 
     def test_init_custom(self):
         """Test initialization with custom parameters."""
-        with patch("ccrc.input.readline_handler._import_readline_library") as mock_import:
+        with patch(
+            "ccrc.input.readline_handler._import_readline_library"
+        ) as mock_import:
             mock_readline = unittest.mock.MagicMock()
             mock_import.return_value = mock_readline
 
             handler = ReadlineInputHandler(
-                history_file="/tmp/test_history", 
+                history_file="/tmp/test_history",
                 history_size=5000,
-                prefer_gnureadline=True
+                prefer_gnureadline=True,
             )
 
             assert handler.history_size == 5000
@@ -49,9 +53,9 @@ class TestReadlineInputHandler:
 
     def test_setup_readline_calls(self):
         """Test that readline setup methods are called."""
-        with patch("ccrc.input.readline_handler._import_readline_library") as mock_import, patch(
-            "os.path.exists", return_value=True
-        ):
+        with patch(
+            "ccrc.input.readline_handler._import_readline_library"
+        ) as mock_import, patch("os.path.exists", return_value=True):
             mock_readline = unittest.mock.MagicMock()
             mock_import.return_value = mock_readline
 
@@ -80,21 +84,24 @@ class TestReadlineInputHandler:
 
     def test_history_file_permission_error(self):
         """Test handling of permission error when reading history."""
-        with patch("readline.set_history_length"), patch(
-            "readline.read_history_file", side_effect=PermissionError
-        ), patch("readline.parse_and_bind"), patch(
-            "readline.set_completer_delims"
-        ), patch(
-            "os.path.exists", return_value=True
-        ), patch(
-            "builtins.print"
-        ) as mock_print:
+        with patch(
+            "ccrc.input.readline_handler._import_readline_library"
+        ) as mock_import:
+            mock_readline = unittest.mock.MagicMock()
+            mock_import.return_value = mock_readline
+            mock_readline.read_history_file.side_effect = PermissionError
 
-            handler = ReadlineInputHandler()
+            with patch("os.path.exists", return_value=True), patch(
+                "builtins.print"
+            ) as mock_print:
 
-            mock_print.assert_called_with(
-                f"Warning: Cannot read history file {handler.history_file}"
-            )
+                handler = ReadlineInputHandler()
+
+                # Check that the warning was printed (should be one of the calls)
+                expected_call = unittest.mock.call(
+                    f"Warning: Cannot read history file {handler.history_file}"
+                )
+                assert expected_call in mock_print.call_args_list
 
     def test_set_completer(self):
         """Test setting custom completer function."""
@@ -160,24 +167,24 @@ class TestReadlineInputHandler:
 
     def test_get_input_keyboard_interrupt(self):
         """Test handling of KeyboardInterrupt."""
-        with patch("readline.set_history_length"), patch(
-            "readline.read_history_file"
-        ), patch("readline.parse_and_bind"), patch(
-            "readline.set_completer_delims"
-        ), patch(
-            "os.path.exists", return_value=False
-        ), patch(
-            "builtins.input", side_effect=KeyboardInterrupt
-        ), patch(
-            "builtins.print"
-        ) as mock_print:
+        with patch(
+            "ccrc.input.readline_handler._import_readline_library"
+        ) as mock_import:
+            mock_readline = unittest.mock.MagicMock()
+            mock_import.return_value = mock_readline
 
-            handler = ReadlineInputHandler()
+            with patch("os.path.exists", return_value=False), patch(
+                "builtins.input", side_effect=KeyboardInterrupt
+            ), patch("builtins.print") as mock_print:
 
-            with pytest.raises(KeyboardInterrupt):
-                handler.get_input("> ")
+                handler = ReadlineInputHandler()
 
-            mock_print.assert_called_once_with()
+                with pytest.raises(KeyboardInterrupt):
+                    handler.get_input("> ")
+
+                # Check that the newline print was called (should be one of the calls)
+                expected_call = unittest.mock.call()
+                assert expected_call in mock_print.call_args_list
 
     def test_get_multiline_input_no_continuation(self):
         """Test multi-line input without continuation."""

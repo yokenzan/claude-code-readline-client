@@ -115,9 +115,7 @@ class ClaudeCodeClient:
         )
         self._conversation_active = False
 
-    async def send_message(
-        self, prompt: str
-    ) -> AsyncGenerator[ClaudeResponse, None]:
+    async def send_message(self, prompt: str) -> AsyncGenerator[ClaudeResponse, None]:
         """
         Send a message to Claude Code and yield responses.
 
@@ -135,9 +133,7 @@ class ClaudeCodeClient:
                     # Extract text from assistant message
                     for block in message.content:
                         if isinstance(block, TextBlock):
-                            yield ClaudeResponse(
-                                text=block.text, is_complete=False
-                            )
+                            yield ClaudeResponse(text=block.text, is_complete=False)
 
                 elif isinstance(message, ResultMessage):
                     # Final message with cost information
@@ -176,9 +172,7 @@ class ClaudeCodeClient:
             )
 
         except ClaudeSDKError as e:
-            yield ClaudeResponse(
-                text="", is_complete=True, error=f"SDK error: {e}"
-            )
+            yield ClaudeResponse(text="", is_complete=True, error=f"SDK error: {e}")
 
         except Exception as e:
             yield ClaudeResponse(

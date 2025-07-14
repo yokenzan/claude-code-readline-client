@@ -9,30 +9,34 @@ from typing import Optional, List, Callable, Any
 def _import_readline_library(prefer_gnureadline: bool = False) -> Any:
     """
     Import readline library with preference for gnureadline if available.
-    
+
     Args:
         prefer_gnureadline: If True, try to import gnureadline first
-        
+
     Returns:
         Imported readline module
     """
     readline_lib = None
     library_name = "unknown"
-    
+
     if prefer_gnureadline:
         try:
             import gnureadline as readline_lib
+
             library_name = "gnureadline"
         except ImportError:
             pass
-    
+
     if readline_lib is None:
         try:
             import readline as readline_lib
+
             library_name = "readline"
         except ImportError:
-            raise ImportError("No readline library available. Install either readline or gnureadline.")
-    
+            raise ImportError(
+                "No readline library available. Install either readline or gnureadline."
+            )
+
     print(f"Using {library_name} library")
     return readline_lib
 
@@ -41,10 +45,10 @@ class ReadlineInputHandler:
     """Handles GNU Readline input with history and key bindings."""
 
     def __init__(
-        self, 
-        history_file: Optional[str] = None, 
+        self,
+        history_file: Optional[str] = None,
         history_size: int = 10000,
-        prefer_gnureadline: bool = False
+        prefer_gnureadline: bool = False,
     ):
         """
         Initialize readline input handler.
@@ -58,7 +62,7 @@ class ReadlineInputHandler:
         self.history_size = history_size
         self.completer_function: Optional[Callable] = None
         self.prefer_gnureadline = prefer_gnureadline
-        
+
         # Import readline library
         self.readline = _import_readline_library(prefer_gnureadline)
 
@@ -92,27 +96,30 @@ class ReadlineInputHandler:
 
         # Enable tab completion (GNU Readline default behavior)
         self.readline.parse_and_bind("tab: complete")
-        
+
         # Try to enable advanced GNU Readline commands if available
         self._try_enable_advanced_commands()
 
     def _try_enable_advanced_commands(self):
         """Try to enable advanced GNU Readline commands if the library supports them."""
         advanced_commands = [
-            ('"\\C-x\\C-e": edit-and-execute-command', 'C-x C-e (edit-and-execute-command)'),
-            ('"\\C-x*": glob-expand-word', 'C-x * (glob-expand-word)'),
-            ('"\\eg": glob-complete-word', 'M-g (glob-complete-word)'),
+            (
+                '"\\C-x\\C-e": edit-and-execute-command',
+                "C-x C-e (edit-and-execute-command)",
+            ),
+            ('"\\C-x*": glob-expand-word', "C-x * (glob-expand-word)"),
+            ('"\\eg": glob-complete-word', "M-g (glob-complete-word)"),
         ]
-        
+
         enabled_commands = []
         for binding, description in advanced_commands:
             try:
                 self.readline.parse_and_bind(binding)
                 enabled_commands.append(description)
-            except Exception as e:
+            except Exception:
                 # Command not available in this readline implementation
                 pass
-        
+
         if enabled_commands:
             print(f"Enabled advanced commands: {', '.join(enabled_commands)}")
 
@@ -270,7 +277,7 @@ def create_command_completer(commands: List[str]) -> Callable:
         """Tab completion function."""
         # Import readline here to avoid circular imports
         import readline
-        
+
         # Get current line buffer
         line_buffer = readline.get_line_buffer()
 

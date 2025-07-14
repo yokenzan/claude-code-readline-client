@@ -18,7 +18,9 @@ class CCRCApp:
 
     def __init__(self, prefer_gnureadline: bool = False):
         self.client = ClaudeCodeClient()
-        self.readline_handler = ReadlineInputHandler(prefer_gnureadline=prefer_gnureadline)
+        self.readline_handler = ReadlineInputHandler(
+            prefer_gnureadline=prefer_gnureadline
+        )
         self.running = True
 
         # Set up command completion
@@ -148,14 +150,14 @@ class CCRCApp:
 def main():
     """Main entry point."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Claude Code Readline Client")
     parser.add_argument(
-        "--gnureadline", 
-        action="store_true", 
-        help="Prefer gnureadline over standard readline library"
+        "--gnureadline",
+        action="store_true",
+        help="Prefer gnureadline over standard readline library",
     )
-    
+
     args = parser.parse_args()
     app = CCRCApp(prefer_gnureadline=args.gnureadline)
 
