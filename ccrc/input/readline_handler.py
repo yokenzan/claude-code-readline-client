@@ -53,10 +53,9 @@ class ReadlineInputHandler:
         # Enable tab completion (GNU Readline default behavior)
         readline.parse_and_bind("tab: complete")
         
-        # Add common GNU Readline bindings that Python doesn't set by default
-        readline.parse_and_bind('"\\C-x\\C-e": edit-and-execute-command')
-        readline.parse_and_bind('"\\C-x*": glob-expand-word')
-        readline.parse_and_bind('"\\eg": glob-complete-word')
+        # Note: Advanced GNU Readline commands like edit-and-execute-command,
+        # glob-expand-word, and glob-complete-word are not available through
+        # Python's readline module, even though they exist in GNU Readline
 
     def set_completer(self, completer_function: Callable):
         """
