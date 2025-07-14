@@ -103,6 +103,10 @@ class CCRCApp:
                 "  Common shortcuts: Ctrl+A (start), Ctrl+E (end), Ctrl+K (kill line)"
             )
             print("  Ctrl+R (search history), Ctrl+C (cancel), Ctrl+D (exit)")
+            print("\nAdvanced features:")
+            print("  For full GNU Readline support, install gnureadline:")
+            print("  uv pip install gnureadline")
+            print("  Then use: ccrc --gnureadline")
 
         elif cmd == "/clear":
             import os
