@@ -26,22 +26,6 @@ setup(
         "Environment :: Console",
     ],
     python_requires=">=3.8",
-    install_requires=[
-        "claude-code-sdk-python",
-        "pyyaml>=6.0",
-        "rich>=13.0",
-        "prompt-toolkit>=3.0",
-    ],
-    extras_require={
-        "dev": [
-            "pytest>=7.0",
-            "pytest-asyncio>=0.21",
-            "pytest-cov>=4.0",
-            "black>=23.0",
-            "flake8>=6.0",
-            "mypy>=1.0",
-        ]
-    },
     entry_points={
         "console_scripts": [
             "ccrc=ccrc.main:main",
