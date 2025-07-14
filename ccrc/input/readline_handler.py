@@ -26,7 +26,7 @@ class ReadlineInputHandler:
         self._setup_readline()
 
     def _setup_readline(self):
-        """Configure readline settings."""
+        """Configure minimal readline settings - let GNU Readline handle defaults."""
         # Set history size
         readline.set_history_length(self.history_size)
 
@@ -39,56 +39,19 @@ class ReadlineInputHandler:
             except Exception as e:
                 print(f"Warning: Error reading history file: {e}")
 
-        # Set up basic key bindings
-        self._setup_key_bindings()
-
-        # Configure tab completion
-        readline.set_completer_delims(" \t\n`!@#$%^&*()=+[{]}\\|;:'\",<>?")
-        readline.parse_and_bind("tab: complete")
-
-    def _setup_key_bindings(self):
-        """Set up basic readline key bindings."""
-        # Enable emacs-style key bindings (default)
-        readline.parse_and_bind("set editing-mode emacs")
-
-        # Basic navigation
-        readline.parse_and_bind("C-a: beginning-of-line")
-        readline.parse_and_bind("C-e: end-of-line")
-        readline.parse_and_bind("C-b: backward-char")
-        readline.parse_and_bind("C-f: forward-char")
-        readline.parse_and_bind("M-b: backward-word")
-        readline.parse_and_bind("M-f: forward-word")
-
-        # History navigation
-        readline.parse_and_bind("C-p: previous-history")
-        readline.parse_and_bind("C-n: next-history")
-        readline.parse_and_bind("C-r: reverse-search-history")
-        readline.parse_and_bind("C-s: forward-search-history")
-
-        # Editing
-        readline.parse_and_bind("C-d: delete-char")
-        readline.parse_and_bind("C-h: backward-delete-char")
-        readline.parse_and_bind("C-k: kill-line")
-        readline.parse_and_bind("C-u: unix-line-discard")
-        readline.parse_and_bind("C-w: unix-word-rubout")
-        readline.parse_and_bind("M-d: kill-word")
-
-        # Completion
-        readline.parse_and_bind("C-i: complete")
-        readline.parse_and_bind("?: complete")
-
-        # Misc
-        readline.parse_and_bind("C-l: clear-screen")
-        readline.parse_and_bind("C-t: transpose-chars")
-        readline.parse_and_bind("M-t: transpose-words")
-
-        # Load user's .inputrc if available
+        # Load user's .inputrc if available (before any other settings)
         inputrc_path = os.path.expanduser("~/.inputrc")
         if os.path.exists(inputrc_path):
             try:
                 readline.read_init_file(inputrc_path)
             except Exception as e:
                 print(f"Warning: Error reading .inputrc: {e}")
+
+        # Configure tab completion delimiters
+        readline.set_completer_delims(" \t\n`!@#$%^&*()=+[{]}\\|;:'\",<>?")
+
+        # Enable tab completion (GNU Readline default behavior)
+        readline.parse_and_bind("tab: complete")
 
     def set_completer(self, completer_function: Callable):
         """

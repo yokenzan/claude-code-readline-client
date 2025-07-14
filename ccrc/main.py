@@ -97,14 +97,12 @@ class CCRCApp:
             print("  /save     - Save current session (not implemented)")
             print("  /load     - Load saved session (not implemented)")
             print("\nKeyboard shortcuts:")
-            print("  Ctrl+A    - Beginning of line")
-            print("  Ctrl+E    - End of line")
-            print("  Ctrl+K    - Kill to end of line")
-            print("  Ctrl+U    - Kill entire line")
-            print("  Ctrl+R    - Reverse search history")
-            print("  Ctrl+L    - Clear screen")
-            print("  Ctrl+C    - Cancel current input")
-            print("  Ctrl+D    - Exit application")
+            print("  Uses GNU Readline defaults - see 'man readline' for details")
+            print("  Configuration: ~/.inputrc file is loaded if present")
+            print(
+                "  Common shortcuts: Ctrl+A (start), Ctrl+E (end), Ctrl+K (kill line)"
+            )
+            print("  Ctrl+R (search history), Ctrl+C (cancel), Ctrl+D (exit)")
 
         elif cmd == "/clear":
             import os

@@ -57,6 +57,8 @@ class TestReadlineInputHandler:
         ) as mock_parse_bind, patch(
             "readline.set_completer_delims"
         ) as mock_set_delims, patch(
+            "readline.read_init_file"
+        ) as mock_read_init_file, patch(
             "os.path.exists", return_value=True
         ):
 
@@ -65,8 +67,10 @@ class TestReadlineInputHandler:
             mock_set_length.assert_called_once_with(10000)
             mock_read_history.assert_called_once()
             mock_set_delims.assert_called_once()
-            # Should have multiple parse_and_bind calls for key bindings
-            assert mock_parse_bind.call_count > 10
+            mock_read_init_file.assert_called_once()
+            # Should only have one parse_and_bind call for tab completion
+            assert mock_parse_bind.call_count == 1
+            mock_parse_bind.assert_called_with("tab: complete")
 
     def test_history_file_not_exists(self):
         """Test behavior when history file doesn't exist."""
