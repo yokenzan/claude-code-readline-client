@@ -9,6 +9,7 @@ import atexit
 from .claude_client import ClaudeCodeClient
 from .input.readline_handler import (
     ReadlineInputHandler,
+    ReadlineLibrary,
     create_command_completer,
 )
 
@@ -16,11 +17,9 @@ from .input.readline_handler import (
 class CCRCApp:
     """Main application class for CCRC."""
 
-    def __init__(self, prefer_gnureadline: bool = False, prefer_rl: bool = False):
+    def __init__(self, library: ReadlineLibrary = ReadlineLibrary.AUTO):
         self.client = ClaudeCodeClient()
-        self.readline_handler = ReadlineInputHandler(
-            prefer_gnureadline=prefer_gnureadline, prefer_rl=prefer_rl
-        )
+        self.readline_handler = ReadlineInputHandler(library=library)
         self.running = True
 
         # Set up command completion
@@ -105,13 +104,12 @@ class CCRCApp:
                 "  Common shortcuts: Ctrl+A (start), Ctrl+E (end), Ctrl+K (kill line)"
             )
             print("  Ctrl+R (search history), Ctrl+C (cancel), Ctrl+D (exit)")
-            print("\nAdvanced features:")
-            print("  For full GNU Readline support, choose from these libraries:")
-            print("  1. gnureadline: uv pip install gnureadline && ccrc --gnureadline")
-            print("  2. rl library: uv pip install rl && ccrc --rl")
-            print(
-                "  Both provide enhanced GNU Readline bindings with additional features"
-            )
+            print("\nLibrary selection:")
+            print("  --library=auto      (default) Try libraries in order: rl > gnureadline > readline")
+            print("  --library=rl        Use rl library (install: uv pip install rl)")
+            print("  --library=gnureadline Use gnureadline (install: uv pip install gnureadline)")
+            print("  --library=readline  Use standard Python readline")
+            print("  Enhanced libraries provide better GNU Readline compatibility")
 
         elif cmd == "/clear":
             import os
@@ -156,18 +154,15 @@ def main():
 
     parser = argparse.ArgumentParser(description="Claude Code Readline Client")
     parser.add_argument(
-        "--gnureadline",
-        action="store_true",
-        help="Prefer gnureadline over standard readline library",
-    )
-    parser.add_argument(
-        "--rl",
-        action="store_true",
-        help="Prefer rl library over other readline implementations",
+        "--library",
+        choices=["auto", "readline", "gnureadline", "rl"],
+        default="auto",
+        help="Choose readline library implementation (default: auto)",
     )
 
     args = parser.parse_args()
-    app = CCRCApp(prefer_gnureadline=args.gnureadline, prefer_rl=args.rl)
+    library = ReadlineLibrary(args.library)
+    app = CCRCApp(library=library)
 
     try:
         # Run the async application

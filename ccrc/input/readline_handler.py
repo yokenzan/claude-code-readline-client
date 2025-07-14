@@ -3,18 +3,25 @@ GNU Readline input handler for CCRC.
 """
 
 import os
+from enum import Enum
 from typing import Optional, List, Callable, Any
 
 
-def _import_readline_library(
-    prefer_gnureadline: bool = False, prefer_rl: bool = False
-) -> Any:
+class ReadlineLibrary(Enum):
+    """Enum for available readline library options."""
+
+    AUTO = "auto"
+    READLINE = "readline"
+    GNUREADLINE = "gnureadline"
+    RL = "rl"
+
+
+def _import_readline_library(library: ReadlineLibrary = ReadlineLibrary.AUTO) -> Any:
     """
-    Import readline library with preference for specific libraries if available.
+    Import readline library based on the specified preference.
 
     Args:
-        prefer_gnureadline: If True, try to import gnureadline first
-        prefer_rl: If True, try to import rl library first
+        library: Which readline library to use
 
     Returns:
         Imported readline module
@@ -22,37 +29,58 @@ def _import_readline_library(
     readline_lib = None
     library_name = "unknown"
 
-    # Try rl library first if preferred
-    if prefer_rl:
-        try:
-            import rl.readline as readline_lib
+    if library == ReadlineLibrary.AUTO:
+        # Try libraries in order of feature richness: rl > gnureadline > readline
+        for lib_choice in [
+            ReadlineLibrary.RL,
+            ReadlineLibrary.GNUREADLINE,
+            ReadlineLibrary.READLINE,
+        ]:
+            try:
+                readline_lib, library_name = _try_import_single_library(lib_choice)
+                break
+            except ImportError:
+                continue
+    else:
+        # Try the specific library requested
+        readline_lib, library_name = _try_import_single_library(library)
 
-            library_name = "rl"
-        except ImportError:
-            pass
-
-    # Try gnureadline if preferred and rl not found
-    if readline_lib is None and prefer_gnureadline:
-        try:
-            import gnureadline as readline_lib
-
-            library_name = "gnureadline"
-        except ImportError:
-            pass
-
-    # Fall back to standard readline
     if readline_lib is None:
-        try:
-            import readline as readline_lib
-
-            library_name = "readline"
-        except ImportError:
-            raise ImportError(
-                "No readline library available. Install readline, gnureadline, or rl."
-            )
+        raise ImportError(
+            "No readline library available. Install readline, gnureadline, or rl."
+        )
 
     print(f"Using {library_name} library")
     return readline_lib
+
+
+def _try_import_single_library(library: ReadlineLibrary) -> tuple[Any, str]:
+    """
+    Try to import a specific readline library.
+
+    Args:
+        library: The specific library to import
+
+    Returns:
+        Tuple of (imported_module, library_name)
+
+    Raises:
+        ImportError: If the library cannot be imported
+    """
+    if library == ReadlineLibrary.RL:
+        import rl.readline as readline_lib
+
+        return readline_lib, "rl"
+    elif library == ReadlineLibrary.GNUREADLINE:
+        import gnureadline as readline_lib
+
+        return readline_lib, "gnureadline"
+    elif library == ReadlineLibrary.READLINE:
+        import readline as readline_lib
+
+        return readline_lib, "readline"
+    else:
+        raise ImportError(f"Unknown library: {library}")
 
 
 class ReadlineInputHandler:
@@ -62,8 +90,7 @@ class ReadlineInputHandler:
         self,
         history_file: Optional[str] = None,
         history_size: int = 10000,
-        prefer_gnureadline: bool = False,
-        prefer_rl: bool = False,
+        library: ReadlineLibrary = ReadlineLibrary.AUTO,
     ):
         """
         Initialize readline input handler.
@@ -71,17 +98,15 @@ class ReadlineInputHandler:
         Args:
             history_file: Path to history file (default: ~/.ccrc_history)
             history_size: Maximum number of history entries
-            prefer_gnureadline: If True, prefer gnureadline over standard readline
-            prefer_rl: If True, prefer rl library over other options
+            library: Which readline library to use
         """
         self.history_file = history_file or os.path.expanduser("~/.ccrc_history")
         self.history_size = history_size
         self.completer_function: Optional[Callable] = None
-        self.prefer_gnureadline = prefer_gnureadline
-        self.prefer_rl = prefer_rl
+        self.library = library
 
         # Import readline library
-        self.readline = _import_readline_library(prefer_gnureadline, prefer_rl)
+        self.readline = _import_readline_library(library)
 
         # Initialize readline
         self._setup_readline()

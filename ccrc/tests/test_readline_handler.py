@@ -9,12 +9,23 @@ from unittest.mock import patch
 
 from ccrc.input.readline_handler import (
     ReadlineInputHandler,
+    ReadlineLibrary,
     create_command_completer,
 )
 
 
 class TestReadlineInputHandler:
     """Test suite for ReadlineInputHandler."""
+
+    def _create_mock_handler(self):
+        """Helper method to create a handler with mocked readline library."""
+        with patch(
+            "ccrc.input.readline_handler._import_readline_library"
+        ) as mock_import:
+            mock_readline = unittest.mock.MagicMock()
+            mock_import.return_value = mock_readline
+            handler = ReadlineInputHandler()
+            return handler, mock_readline
 
     def test_init_default(self):
         """Test default initialization."""
@@ -29,11 +40,11 @@ class TestReadlineInputHandler:
             assert handler.history_size == 10000
             assert handler.history_file == os.path.expanduser("~/.ccrc_history")
             assert handler.completer_function is None
-            assert handler.prefer_gnureadline is False
-            mock_import.assert_called_once_with(False, False)
+            assert handler.library == ReadlineLibrary.AUTO
+            mock_import.assert_called_once_with(ReadlineLibrary.AUTO)
 
-    def test_init_custom(self):
-        """Test initialization with custom parameters."""
+    def test_init_with_gnureadline(self):
+        """Test initialization with gnureadline library."""
         with patch(
             "ccrc.input.readline_handler._import_readline_library"
         ) as mock_import:
@@ -43,16 +54,16 @@ class TestReadlineInputHandler:
             handler = ReadlineInputHandler(
                 history_file="/tmp/test_history",
                 history_size=5000,
-                prefer_gnureadline=True,
+                library=ReadlineLibrary.GNUREADLINE,
             )
 
             assert handler.history_size == 5000
             assert handler.history_file == "/tmp/test_history"
-            assert handler.prefer_gnureadline is True
-            mock_import.assert_called_once_with(True, False)
+            assert handler.library == ReadlineLibrary.GNUREADLINE
+            mock_import.assert_called_once_with(ReadlineLibrary.GNUREADLINE)
 
     def test_init_with_rl(self):
-        """Test initialization with rl library preference."""
+        """Test initialization with rl library."""
         with patch(
             "ccrc.input.readline_handler._import_readline_library"
         ) as mock_import:
@@ -62,13 +73,13 @@ class TestReadlineInputHandler:
             handler = ReadlineInputHandler(
                 history_file="/tmp/test_history",
                 history_size=5000,
-                prefer_rl=True,
+                library=ReadlineLibrary.RL,
             )
 
             assert handler.history_size == 5000
             assert handler.history_file == "/tmp/test_history"
-            assert handler.prefer_rl is True
-            mock_import.assert_called_once_with(False, True)
+            assert handler.library == ReadlineLibrary.RL
+            mock_import.assert_called_once_with(ReadlineLibrary.RL)
 
     def test_setup_readline_calls(self):
         """Test that readline setup methods are called."""
@@ -124,15 +135,11 @@ class TestReadlineInputHandler:
 
     def test_set_completer(self):
         """Test setting custom completer function."""
-        with patch("readline.set_history_length"), patch(
-            "readline.read_history_file"
-        ), patch("readline.parse_and_bind"), patch(
-            "readline.set_completer_delims"
-        ), patch(
-            "readline.set_completer"
-        ) as mock_set_completer, patch(
-            "os.path.exists", return_value=False
-        ):
+        with patch(
+            "ccrc.input.readline_handler._import_readline_library"
+        ) as mock_import:
+            mock_readline = unittest.mock.MagicMock()
+            mock_import.return_value = mock_readline
 
             handler = ReadlineInputHandler()
 
@@ -142,7 +149,7 @@ class TestReadlineInputHandler:
             handler.set_completer(test_completer)
 
             assert handler.completer_function == test_completer
-            mock_set_completer.assert_called_once_with(test_completer)
+            mock_readline.set_completer.assert_called_once_with(test_completer)
 
     def test_get_input_success(self):
         """Test successful input retrieval."""
@@ -360,27 +367,25 @@ class TestReadlineInputHandler:
 class TestImportReadlineLibrary:
     """Test the _import_readline_library function."""
 
-    def test_rl_library_precedence(self):
-        """Test that rl library takes precedence when prefer_rl=True."""
+    def test_rl_library_selection(self):
+        """Test that rl library is selected correctly."""
         with patch("builtins.print") as mock_print:
-            # Test that the function works with actual rl library if available
             from ccrc.input.readline_handler import _import_readline_library
 
             # This should import the rl library since it's installed
-            result = _import_readline_library(prefer_rl=True)
+            result = _import_readline_library(ReadlineLibrary.RL)
 
             # Verify that the rl library was selected
             assert hasattr(result, "parse_and_bind")
             mock_print.assert_called_with("Using rl library")
 
-    def test_library_fallback(self):
-        """Test library fallback behavior."""
-        # Test the actual library selection logic
+    def test_auto_library_selection(self):
+        """Test AUTO library selection behavior."""
         from ccrc.input.readline_handler import _import_readline_library
 
         with patch("builtins.print") as mock_print:
-            # Without any preferences, should use standard readline
-            result = _import_readline_library(prefer_rl=False, prefer_gnureadline=False)
+            # AUTO should try libraries in order of feature richness
+            result = _import_readline_library(ReadlineLibrary.AUTO)
 
             # Should have readline functionality
             assert hasattr(result, "parse_and_bind")
@@ -389,6 +394,22 @@ class TestImportReadlineLibrary:
             assert mock_print.called
             print_args = mock_print.call_args[0][0]
             assert "Using" in print_args and "library" in print_args
+
+    def test_specific_library_selection(self):
+        """Test selecting specific libraries."""
+        from ccrc.input.readline_handler import _import_readline_library
+
+        # Test gnureadline selection
+        with patch("builtins.print") as mock_print:
+            result = _import_readline_library(ReadlineLibrary.GNUREADLINE)
+            assert hasattr(result, "parse_and_bind")
+            mock_print.assert_called_with("Using gnureadline library")
+
+        # Test readline selection
+        with patch("builtins.print") as mock_print:
+            result = _import_readline_library(ReadlineLibrary.READLINE)
+            assert hasattr(result, "parse_and_bind")
+            mock_print.assert_called_with("Using readline library")
 
 
 class TestCreateCommandCompleter:
