@@ -6,12 +6,15 @@ import os
 from typing import Optional, List, Callable, Any
 
 
-def _import_readline_library(prefer_gnureadline: bool = False) -> Any:
+def _import_readline_library(
+    prefer_gnureadline: bool = False, prefer_rl: bool = False
+) -> Any:
     """
-    Import readline library with preference for gnureadline if available.
+    Import readline library with preference for specific libraries if available.
 
     Args:
         prefer_gnureadline: If True, try to import gnureadline first
+        prefer_rl: If True, try to import rl library first
 
     Returns:
         Imported readline module
@@ -19,7 +22,17 @@ def _import_readline_library(prefer_gnureadline: bool = False) -> Any:
     readline_lib = None
     library_name = "unknown"
 
-    if prefer_gnureadline:
+    # Try rl library first if preferred
+    if prefer_rl:
+        try:
+            import rl.readline as readline_lib
+
+            library_name = "rl"
+        except ImportError:
+            pass
+
+    # Try gnureadline if preferred and rl not found
+    if readline_lib is None and prefer_gnureadline:
         try:
             import gnureadline as readline_lib
 
@@ -27,6 +40,7 @@ def _import_readline_library(prefer_gnureadline: bool = False) -> Any:
         except ImportError:
             pass
 
+    # Fall back to standard readline
     if readline_lib is None:
         try:
             import readline as readline_lib
@@ -34,7 +48,7 @@ def _import_readline_library(prefer_gnureadline: bool = False) -> Any:
             library_name = "readline"
         except ImportError:
             raise ImportError(
-                "No readline library available. Install either readline or gnureadline."
+                "No readline library available. Install readline, gnureadline, or rl."
             )
 
     print(f"Using {library_name} library")
@@ -49,6 +63,7 @@ class ReadlineInputHandler:
         history_file: Optional[str] = None,
         history_size: int = 10000,
         prefer_gnureadline: bool = False,
+        prefer_rl: bool = False,
     ):
         """
         Initialize readline input handler.
@@ -57,14 +72,16 @@ class ReadlineInputHandler:
             history_file: Path to history file (default: ~/.ccrc_history)
             history_size: Maximum number of history entries
             prefer_gnureadline: If True, prefer gnureadline over standard readline
+            prefer_rl: If True, prefer rl library over other options
         """
         self.history_file = history_file or os.path.expanduser("~/.ccrc_history")
         self.history_size = history_size
         self.completer_function: Optional[Callable] = None
         self.prefer_gnureadline = prefer_gnureadline
+        self.prefer_rl = prefer_rl
 
         # Import readline library
-        self.readline = _import_readline_library(prefer_gnureadline)
+        self.readline = _import_readline_library(prefer_gnureadline, prefer_rl)
 
         # Initialize readline
         self._setup_readline()

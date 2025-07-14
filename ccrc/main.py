@@ -16,10 +16,10 @@ from .input.readline_handler import (
 class CCRCApp:
     """Main application class for CCRC."""
 
-    def __init__(self, prefer_gnureadline: bool = False):
+    def __init__(self, prefer_gnureadline: bool = False, prefer_rl: bool = False):
         self.client = ClaudeCodeClient()
         self.readline_handler = ReadlineInputHandler(
-            prefer_gnureadline=prefer_gnureadline
+            prefer_gnureadline=prefer_gnureadline, prefer_rl=prefer_rl
         )
         self.running = True
 
@@ -106,9 +106,12 @@ class CCRCApp:
             )
             print("  Ctrl+R (search history), Ctrl+C (cancel), Ctrl+D (exit)")
             print("\nAdvanced features:")
-            print("  For full GNU Readline support, install gnureadline:")
-            print("  uv pip install gnureadline")
-            print("  Then use: ccrc --gnureadline")
+            print("  For full GNU Readline support, choose from these libraries:")
+            print("  1. gnureadline: uv pip install gnureadline && ccrc --gnureadline")
+            print("  2. rl library: uv pip install rl && ccrc --rl")
+            print(
+                "  Both provide enhanced GNU Readline bindings with additional features"
+            )
 
         elif cmd == "/clear":
             import os
@@ -157,9 +160,14 @@ def main():
         action="store_true",
         help="Prefer gnureadline over standard readline library",
     )
+    parser.add_argument(
+        "--rl",
+        action="store_true",
+        help="Prefer rl library over other readline implementations",
+    )
 
     args = parser.parse_args()
-    app = CCRCApp(prefer_gnureadline=args.gnureadline)
+    app = CCRCApp(prefer_gnureadline=args.gnureadline, prefer_rl=args.rl)
 
     try:
         # Run the async application
