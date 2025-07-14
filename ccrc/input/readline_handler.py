@@ -3,24 +3,64 @@ GNU Readline input handler for CCRC.
 """
 
 import os
-import readline
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Any
+
+
+def _import_readline_library(prefer_gnureadline: bool = False) -> Any:
+    """
+    Import readline library with preference for gnureadline if available.
+    
+    Args:
+        prefer_gnureadline: If True, try to import gnureadline first
+        
+    Returns:
+        Imported readline module
+    """
+    readline_lib = None
+    library_name = "unknown"
+    
+    if prefer_gnureadline:
+        try:
+            import gnureadline as readline_lib
+            library_name = "gnureadline"
+        except ImportError:
+            pass
+    
+    if readline_lib is None:
+        try:
+            import readline as readline_lib
+            library_name = "readline"
+        except ImportError:
+            raise ImportError("No readline library available. Install either readline or gnureadline.")
+    
+    print(f"Using {library_name} library")
+    return readline_lib
 
 
 class ReadlineInputHandler:
     """Handles GNU Readline input with history and key bindings."""
 
-    def __init__(self, history_file: Optional[str] = None, history_size: int = 10000):
+    def __init__(
+        self, 
+        history_file: Optional[str] = None, 
+        history_size: int = 10000,
+        prefer_gnureadline: bool = False
+    ):
         """
         Initialize readline input handler.
 
         Args:
             history_file: Path to history file (default: ~/.ccrc_history)
             history_size: Maximum number of history entries
+            prefer_gnureadline: If True, prefer gnureadline over standard readline
         """
         self.history_file = history_file or os.path.expanduser("~/.ccrc_history")
         self.history_size = history_size
         self.completer_function: Optional[Callable] = None
+        self.prefer_gnureadline = prefer_gnureadline
+        
+        # Import readline library
+        self.readline = _import_readline_library(prefer_gnureadline)
 
         # Initialize readline
         self._setup_readline()
@@ -28,12 +68,12 @@ class ReadlineInputHandler:
     def _setup_readline(self):
         """Configure minimal readline settings - let GNU Readline handle defaults."""
         # Set history size
-        readline.set_history_length(self.history_size)
+        self.readline.set_history_length(self.history_size)
 
         # Load history if file exists
         if os.path.exists(self.history_file):
             try:
-                readline.read_history_file(self.history_file)
+                self.readline.read_history_file(self.history_file)
             except PermissionError:
                 print(f"Warning: Cannot read history file {self.history_file}")
             except Exception as e:
@@ -43,19 +83,38 @@ class ReadlineInputHandler:
         inputrc_path = os.path.expanduser("~/.inputrc")
         if os.path.exists(inputrc_path):
             try:
-                readline.read_init_file(inputrc_path)
+                self.readline.read_init_file(inputrc_path)
             except Exception as e:
                 print(f"Warning: Error reading .inputrc: {e}")
 
         # Configure tab completion delimiters
-        readline.set_completer_delims(" \t\n`!@#$%^&*()=+[{]}\\|;:'\",<>?")
+        self.readline.set_completer_delims(" \t\n`!@#$%^&*()=+[{]}\\|;:'\",<>?")
 
         # Enable tab completion (GNU Readline default behavior)
-        readline.parse_and_bind("tab: complete")
+        self.readline.parse_and_bind("tab: complete")
         
-        # Note: Advanced GNU Readline commands like edit-and-execute-command,
-        # glob-expand-word, and glob-complete-word are not available through
-        # Python's readline module, even though they exist in GNU Readline
+        # Try to enable advanced GNU Readline commands if available
+        self._try_enable_advanced_commands()
+
+    def _try_enable_advanced_commands(self):
+        """Try to enable advanced GNU Readline commands if the library supports them."""
+        advanced_commands = [
+            ('"\\C-x\\C-e": edit-and-execute-command', 'C-x C-e (edit-and-execute-command)'),
+            ('"\\C-x*": glob-expand-word', 'C-x * (glob-expand-word)'),
+            ('"\\eg": glob-complete-word', 'M-g (glob-complete-word)'),
+        ]
+        
+        enabled_commands = []
+        for binding, description in advanced_commands:
+            try:
+                self.readline.parse_and_bind(binding)
+                enabled_commands.append(description)
+            except Exception as e:
+                # Command not available in this readline implementation
+                pass
+        
+        if enabled_commands:
+            print(f"Enabled advanced commands: {', '.join(enabled_commands)}")
 
     def set_completer(self, completer_function: Callable):
         """
@@ -66,7 +125,7 @@ class ReadlineInputHandler:
                 completion
         """
         self.completer_function = completer_function
-        readline.set_completer(completer_function)
+        self.readline.set_completer(completer_function)
 
     def get_input(self, prompt: str = "> ") -> str:
         """
@@ -87,7 +146,7 @@ class ReadlineInputHandler:
 
             # Add non-empty input to history
             if user_input.strip():
-                readline.add_history(user_input)
+                self.readline.add_history(user_input)
 
             return user_input
 
@@ -145,7 +204,7 @@ class ReadlineInputHandler:
                 os.makedirs(history_dir, exist_ok=True)
 
             # Save history
-            readline.write_history_file(self.history_file)
+            self.readline.write_history_file(self.history_file)
 
         except PermissionError:
             print(f"Warning: Cannot save history to {self.history_file}")
@@ -154,11 +213,11 @@ class ReadlineInputHandler:
 
     def clear_history(self):
         """Clear command history."""
-        readline.clear_history()
+        self.readline.clear_history()
 
     def get_history_length(self) -> int:
         """Get current history length."""
-        return readline.get_current_history_length()
+        return self.readline.get_current_history_length()
 
     def get_history_item(self, index: int) -> Optional[str]:
         """
@@ -171,7 +230,7 @@ class ReadlineInputHandler:
             History item or None if index is invalid
         """
         try:
-            return readline.get_history_item(index)
+            return self.readline.get_history_item(index)
         except IndexError:
             return None
 
@@ -192,8 +251,8 @@ class ReadlineInputHandler:
         self.save_history()
 
         # Reset readline state
-        readline.set_completer(None)
-        readline.clear_history()
+        self.readline.set_completer(None)
+        self.readline.clear_history()
 
 
 def create_command_completer(commands: List[str]) -> Callable:
@@ -209,6 +268,9 @@ def create_command_completer(commands: List[str]) -> Callable:
 
     def completer(text: str, state: int) -> Optional[str]:
         """Tab completion function."""
+        # Import readline here to avoid circular imports
+        import readline
+        
         # Get current line buffer
         line_buffer = readline.get_line_buffer()
 

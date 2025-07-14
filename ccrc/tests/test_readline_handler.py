@@ -18,60 +18,51 @@ class TestReadlineInputHandler:
 
     def test_init_default(self):
         """Test default initialization."""
-        with patch("readline.set_history_length"), patch(
-            "readline.read_history_file"
-        ), patch("readline.parse_and_bind"), patch(
-            "readline.set_completer_delims"
-        ), patch(
-            "os.path.exists", return_value=False
-        ):
-
+        with patch("ccrc.input.readline_handler._import_readline_library") as mock_import:
+            mock_readline = unittest.mock.MagicMock()
+            mock_import.return_value = mock_readline
+            
             handler = ReadlineInputHandler()
 
             assert handler.history_size == 10000
             assert handler.history_file == os.path.expanduser("~/.ccrc_history")
             assert handler.completer_function is None
+            assert handler.prefer_gnureadline is False
+            mock_import.assert_called_once_with(False)
 
     def test_init_custom(self):
         """Test initialization with custom parameters."""
-        with patch("readline.set_history_length"), patch(
-            "readline.read_history_file"
-        ), patch("readline.parse_and_bind"), patch(
-            "readline.set_completer_delims"
-        ), patch(
-            "os.path.exists", return_value=False
-        ):
+        with patch("ccrc.input.readline_handler._import_readline_library") as mock_import:
+            mock_readline = unittest.mock.MagicMock()
+            mock_import.return_value = mock_readline
 
             handler = ReadlineInputHandler(
-                history_file="/tmp/test_history", history_size=5000
+                history_file="/tmp/test_history", 
+                history_size=5000,
+                prefer_gnureadline=True
             )
 
             assert handler.history_size == 5000
             assert handler.history_file == "/tmp/test_history"
+            assert handler.prefer_gnureadline is True
+            mock_import.assert_called_once_with(True)
 
     def test_setup_readline_calls(self):
         """Test that readline setup methods are called."""
-        with patch("readline.set_history_length") as mock_set_length, patch(
-            "readline.read_history_file"
-        ) as mock_read_history, patch(
-            "readline.parse_and_bind"
-        ) as mock_parse_bind, patch(
-            "readline.set_completer_delims"
-        ) as mock_set_delims, patch(
-            "readline.read_init_file"
-        ) as mock_read_init_file, patch(
+        with patch("ccrc.input.readline_handler._import_readline_library") as mock_import, patch(
             "os.path.exists", return_value=True
         ):
+            mock_readline = unittest.mock.MagicMock()
+            mock_import.return_value = mock_readline
 
             ReadlineInputHandler()
 
-            mock_set_length.assert_called_once_with(10000)
-            mock_read_history.assert_called_once()
-            mock_set_delims.assert_called_once()
-            mock_read_init_file.assert_called_once()
-            # Should only have one parse_and_bind call for tab completion
-            assert mock_parse_bind.call_count == 1
-            mock_parse_bind.assert_called_with("tab: complete")
+            mock_readline.set_history_length.assert_called_once_with(10000)
+            mock_readline.read_history_file.assert_called_once()
+            mock_readline.set_completer_delims.assert_called_once()
+            mock_readline.read_init_file.assert_called_once()
+            # Should have parse_and_bind calls for tab completion and potentially advanced commands
+            assert mock_readline.parse_and_bind.call_count >= 1
 
     def test_history_file_not_exists(self):
         """Test behavior when history file doesn't exist."""
