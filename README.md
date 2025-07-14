@@ -36,8 +36,11 @@ The current Claude Code CLI lacks advanced line editing capabilities. This proje
 git clone <repository-url>
 cd readline-claude-code
 
-# Install dependencies
-pip install -e .
+# Install dependencies with uv
+uv pip install -e .
+
+# For development
+uv pip install -e ".[dev]"
 ```
 
 ## Usage

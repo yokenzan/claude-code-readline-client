@@ -1,4 +1,0 @@
-claude-code-sdk-python
-pyyaml>=6.0
-rich>=13.0
-prompt-toolkit>=3.0
