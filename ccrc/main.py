@@ -4,8 +4,13 @@ Main entry point for Claude Code Readline Client (CCRC).
 
 import asyncio
 import sys
+import atexit
 
 from .claude_client import ClaudeCodeClient
+from .input.readline_handler import (
+    ReadlineInputHandler,
+    create_command_completer,
+)
 
 
 class CCRCApp:
@@ -13,7 +18,16 @@ class CCRCApp:
 
     def __init__(self):
         self.client = ClaudeCodeClient()
+        self.readline_handler = ReadlineInputHandler()
         self.running = True
+
+        # Set up command completion
+        commands = ["/help", "/clear", "/exit", "/history", "/save", "/load"]
+        completer = create_command_completer(commands)
+        self.readline_handler.set_completer(completer)
+
+        # Register cleanup function
+        atexit.register(self.cleanup)
 
     async def run(self):
         """Main application loop."""
@@ -23,13 +37,18 @@ class CCRCApp:
 
         while self.running:
             try:
-                # Get user input (will be replaced with readline later)
-                prompt = input("\n> ")
+                # Get user input with readline support
+                prompt = self.readline_handler.get_input("\n> ")
 
-                if prompt.lower() in ["exit", "quit"]:
+                if prompt.lower() in ["exit", "quit", "/exit"]:
                     break
 
                 if not prompt.strip():
+                    continue
+
+                # Handle special commands
+                if prompt.startswith("/"):
+                    self._handle_command(prompt)
                     continue
 
                 # Send message to Claude and handle responses
@@ -55,6 +74,9 @@ class CCRCApp:
             except KeyboardInterrupt:
                 print("\nGoodbye!")
                 break
+            except EOFError:
+                print("\nGoodbye!")
+                break
 
             except Exception as e:
                 print(f"\nUnexpected error: {e}")
@@ -62,9 +84,63 @@ class CCRCApp:
 
         self.running = False
 
+    def _handle_command(self, command: str):
+        """Handle special commands."""
+        cmd = command.strip().lower()
+
+        if cmd == "/help":
+            print("\nAvailable commands:")
+            print("  /help     - Show this help message")
+            print("  /clear    - Clear the screen")
+            print("  /exit     - Exit the application")
+            print("  /history  - Show command history")
+            print("  /save     - Save current session (not implemented)")
+            print("  /load     - Load saved session (not implemented)")
+            print("\nKeyboard shortcuts:")
+            print("  Ctrl+A    - Beginning of line")
+            print("  Ctrl+E    - End of line")
+            print("  Ctrl+K    - Kill to end of line")
+            print("  Ctrl+U    - Kill entire line")
+            print("  Ctrl+R    - Reverse search history")
+            print("  Ctrl+L    - Clear screen")
+            print("  Ctrl+C    - Cancel current input")
+            print("  Ctrl+D    - Exit application")
+
+        elif cmd == "/clear":
+            import os
+
+            os.system("clear" if os.name == "posix" else "cls")
+
+        elif cmd == "/exit":
+            self.running = False
+
+        elif cmd == "/history":
+            history = self.readline_handler.get_all_history()
+            if history:
+                print("\nCommand history:")
+                for i, item in enumerate(history[-20:], 1):  # Show last 20
+                    print(f"  {i:2d}: {item}")
+            else:
+                print("\nNo history available.")
+
+        elif cmd == "/save":
+            print("Session save functionality not implemented yet.")
+
+        elif cmd == "/load":
+            print("Session load functionality not implemented yet.")
+
+        else:
+            print(f"Unknown command: {command}")
+            print("Type /help for available commands.")
+
     def stop(self):
         """Stop the application."""
         self.running = False
+
+    def cleanup(self):
+        """Clean up resources."""
+        if hasattr(self, "readline_handler"):
+            self.readline_handler.cleanup()
 
 
 def main():
