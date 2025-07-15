@@ -132,9 +132,7 @@ class TestClaudeResponse:
 
     def test_claude_response_creation(self):
         """Test creating ClaudeResponse objects."""
-        response = ClaudeResponse(
-            text="Hello", is_complete=False, cost_usd=0.001
-        )
+        response = ClaudeResponse(text="Hello", is_complete=False, cost_usd=0.001)
 
         assert response.text == "Hello"
         assert not response.is_complete
@@ -143,9 +141,7 @@ class TestClaudeResponse:
 
     def test_claude_response_with_error(self):
         """Test creating ClaudeResponse with error."""
-        response = ClaudeResponse(
-            text="", is_complete=True, error="Test error"
-        )
+        response = ClaudeResponse(text="", is_complete=True, error="Test error")
 
         assert response.text == ""
         assert response.is_complete
